@@ -164,15 +164,35 @@ class OpenstackManager(CloudManager):
                 "id"
             ]
             nic = {"net-id": net}
+            nic_config = {'port': {
+                   'network_id': net,
+                   'name': runner.name,
+                   'admin_state_up': True,
+                   'security_groups': [sec_group_id]
+            }}
+            nic = self.neutron.create_port(body=nic_config)
             image = self.nova_client.glance.find_image(runner.vm_type.config["image"])
             flavor = self.nova_client.flavors.find(name=runner.vm_type.config["flavor"])
+            rnic_config = {'port': {
+                   'network_id': rnic_net,
+                   'name': runner.name,
+                   'admin_state_up': True,
+                   'binding:vnic_type': 'direct',
+                   'port_security_enabled': False
+            }}
+
+            rnic = self.neutron.create_port(body=rnic_config)
+            nic_id = nic['port']['id']
+            nic_def = {"port-id": nic_id}
+            rnic_id = rnic['port']['id']
+            rnic_def = {"port-id": rnic_id}
 
             instance = self.nova_client.servers.create(
                 name=runner.name,
                 image=image,
                 flavor=flavor,
-                security_groups=[sec_group_id],
-                nics=[nic],
+                security_groups=None,
+                nics=[nic_def,rnic_def],
                 availability_zone=runner.vm_type.config["availability_zone"],
                 userdata=self.script_init_runner(
                     runner, runner_token, github_organization, installer
@@ -183,22 +203,7 @@ class OpenstackManager(CloudManager):
                 instance = self.nova_client.servers.get(instance.id)
                 time.sleep(2)
 
-            rnic_config = {'port': {
-                   'network_id': rnic_net,
-                   'name': runner.name,
-                   'admin_state_up': True,
-                   'binding:vnic_type': 'direct',
-                   'port_security_enabled': False
-            }}
 
-            rnic = self.neutron.create_port(body=rnic_config)
-        
-            rnic_attach = self.nova_client.servers.interface_attach(
-                server=instance.id,
-                port_id=rnic['port']['id'],
-                net_id="",
-                fixed_ip=""
-            )
 
             if instance.status == "ERROR":
                 logger.info("vm failed, creating a new one")
