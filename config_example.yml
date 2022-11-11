@@ -12,6 +12,7 @@ cloud_config:
   password: ""
   token: ""
   network_name: ""
+  rnic_network_name: ""
   id: ""
   secret: ""
 
