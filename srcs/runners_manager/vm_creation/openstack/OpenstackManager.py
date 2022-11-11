@@ -274,8 +274,12 @@ VM id: {instance.id if instance else 'Vm not created'}"""
 
                 except Exception:
                     pass
-
+            nics=self.nova_client.servers.interface_list(runner.vm_id)
             self.nova_client.servers.delete(runner.vm_id)
+            for deletenics in nics:
+                logger.info("deleting port:")
+                logger.info(deletenics)
+                self.neutron.delete_port(port=deletenics.id)
             rnic = self.neutron.list_ports(name=runner.name)
             self.neutron.delete_port(port=rnic['ports'][0]['id'])
 
