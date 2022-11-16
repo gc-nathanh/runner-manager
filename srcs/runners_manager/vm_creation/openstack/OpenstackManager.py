@@ -160,9 +160,6 @@ class OpenstackManager(CloudManager):
             net = self.neutron.list_networks(name=self.network_name)["networks"][0][
                 "id"
             ]
-            rnic_net = self.neutron.list_networks(name=self.rnic_network_name)["networks"][0][
-                "id"
-            ]
             nic = {"net-id": net}
             nic_config = {'port': {
                    'network_id': net,
@@ -173,26 +170,33 @@ class OpenstackManager(CloudManager):
             nic = self.neutron.create_port(body=nic_config)
             image = self.nova_client.glance.find_image(runner.vm_type.config["image"])
             flavor = self.nova_client.flavors.find(name=runner.vm_type.config["flavor"])
-            rnic_config = {'port': {
-                   'network_id': rnic_net,
-                   'name': runner.name,
-                   'admin_state_up': True,
-                   'binding:vnic_type': 'direct',
-                   'port_security_enabled': False
-            }}
-
-            rnic = self.neutron.create_port(body=rnic_config)
             nic_id = nic['port']['id']
             nic_def = {"port-id": nic_id}
-            rnic_id = rnic['port']['id']
-            rnic_def = {"port-id": rnic_id}
+            instancenics = [nic_def]
+
+            #RNIC stuff
+            if self.rnic_network_name:
+                rnic_net = self.neutron.list_networks(name=self.rnic_network_name)["networks"][0][
+                    "id"
+                ]
+                rnic_config = {'port': {
+                    'network_id': rnic_net,
+                    'name': runner.name,
+                    'admin_state_up': True,
+                    'binding:vnic_type': 'direct',
+                    'port_security_enabled': False
+                }}
+                rnic = self.neutron.create_port(body=rnic_config)
+                rnic_id = rnic['port']['id']
+                rnic_def = {"port-id": rnic_id}
+                instancenics.append(rnic_def)
 
             instance = self.nova_client.servers.create(
                 name=runner.name,
                 image=image,
                 flavor=flavor,
                 security_groups=None,
-                nics=[nic_def,rnic_def],
+                nics=instancenics,
                 availability_zone=runner.vm_type.config["availability_zone"],
                 userdata=self.script_init_runner(
                     runner, runner_token, github_organization, installer

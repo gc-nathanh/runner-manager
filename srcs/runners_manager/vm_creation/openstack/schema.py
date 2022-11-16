@@ -7,7 +7,7 @@ class OpenstackConfig(Schema):
     region_name = fields.Str(required=True)
     project_name = fields.Str(required=True)
     network_name = fields.Str(required=True)
-    rnic_network_name = fields.Str(required=True)
+    rnic_network_name = fields.Str(required=False)
 
     username = fields.Str(required=False)
     password = fields.Str(required=False)
