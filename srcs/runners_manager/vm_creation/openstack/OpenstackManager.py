@@ -31,7 +31,6 @@ class OpenstackManager(CloudManager):
     nova_client: novaclient.client.Client
     neutron: neutronclient.v2_0.client.Client
     network_name: str
-    rnic_network_name: str
     settings: dict
 
     def __init__(
@@ -86,7 +85,6 @@ class OpenstackManager(CloudManager):
             )
 
         self.network_name = settings["network_name"]
-        self.rnic_network_name = settings["rnic_network_name"]
         self.nova_client = novaclient.client.Client(
             version=2, session=session, region_name=settings["region_name"]
         )
@@ -153,7 +151,6 @@ class OpenstackManager(CloudManager):
             )
             for vm in vm_list:
                 self.nova_client.servers.delete(vm.id)
-
             sec_group_id = self.neutron.list_security_groups()["security_groups"][0][
                 "id"
             ]
@@ -173,10 +170,11 @@ class OpenstackManager(CloudManager):
             nic_id = nic['port']['id']
             nic_def = {"port-id": nic_id}
             instancenics = [nic_def]
-
-            #RNIC stuff
-            if self.rnic_network_name:
-                rnic_net = self.neutron.list_networks(name=self.rnic_network_name)["networks"][0][
+            
+            #RNIC stuff        
+            if "rnic_network_name" in runner.vm_type.config:
+                logger.info("RNIC connectivity required")
+                rnic_net = self.neutron.list_networks(name=runner.vm_type.config["rnic_network_name"])["networks"][0][
                     "id"
                 ]
                 rnic_config = {'port': {
