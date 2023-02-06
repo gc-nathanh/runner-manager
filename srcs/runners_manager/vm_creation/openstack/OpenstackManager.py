@@ -151,6 +151,14 @@ class OpenstackManager(CloudManager):
             )
             for vm in vm_list:
                 self.nova_client.servers.delete(vm.id)
+
+            # # Delete any leftover ports with the same name
+            # port_list = self.neutron.list_ports(name=runner.name)
+            # for port in port_list:
+            #     logger.info("deleting port:")
+            #     logger.info(port)
+            #     self.neutron.delete_port(port=port)
+    
             sec_group_id = self.neutron.list_security_groups()["security_groups"][0][
                 "id"
             ]
@@ -189,8 +197,16 @@ class OpenstackManager(CloudManager):
                 rnic_def = {"port-id": rnic_id}
                 instancenics.append(rnic_def)
 
+            # IPUOF stuff
+            meta_config = {}
+            if "partition_name" in runner.vm_type.config:
+                logger.info("IPUOF config required")
+                meta_config = { "partition_name": runner.vm_type.config["partition_name"], "vipu_ipaddr": runner.vm_type.config["vipu_ipaddr"], "vipu_port": runner.vm_type.config["vipu_port"]  }
+                print(meta_config)
+
             instance = self.nova_client.servers.create(
                 name=runner.name,
+                meta=meta_config,
                 image=image,
                 flavor=flavor,
                 security_groups=None,

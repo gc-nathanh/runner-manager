@@ -19,3 +19,6 @@ class OpenstackConfigVmType(Schema):
     image = fields.Str(required=True)
     availability_zone = fields.Str(required=False)
     rnic_network_name = fields.Str(required=False)
+    partition_name = fields.Str(required=False)
+    vipu_ipaddr = fields.Str(required=False)
+    vipu_port = fields.Str(required=False)
