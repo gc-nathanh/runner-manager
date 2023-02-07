@@ -244,6 +244,12 @@ class OpenstackManager(CloudManager):
                 f"""VM not found on openstack, recreating it.
 VM id: {instance.id if instance else 'Vm not created'}"""
             )
+            # Delete any leftover ports with the same name
+            port_list = self.neutron.list_ports(name=runner.name)
+            for port in port_list['ports']:
+                logger.info("deleting port:")
+                logger.info(port['id'])
+                self.neutron.delete_port(port=port['id'])
             return self.create_vm(
                 runner, runner_token, github_organization, installer, call_number + 1
             )
