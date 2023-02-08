@@ -151,6 +151,7 @@ class OpenstackManager(CloudManager):
             )
             for vm in vm_list:
                 self.nova_client.servers.delete(vm.id)
+    
             sec_group_id = self.neutron.list_security_groups()["security_groups"][0][
                 "id"
             ]
@@ -189,8 +190,15 @@ class OpenstackManager(CloudManager):
                 rnic_def = {"port-id": rnic_id}
                 instancenics.append(rnic_def)
 
+            # IPUOF stuff
+            meta_config = {}
+            if "partition_name" in runner.vm_type.config:
+                logger.info("IPUOF config required")
+                meta_config = { "partition_name": runner.vm_type.config["partition_name"], "vipu_ipaddr": runner.vm_type.config["vipu_ipaddr"], "vipu_port": runner.vm_type.config["vipu_port"]  }
+
             instance = self.nova_client.servers.create(
                 name=runner.name,
+                meta=meta_config,
                 image=image,
                 flavor=flavor,
                 security_groups=None,
@@ -204,8 +212,6 @@ class OpenstackManager(CloudManager):
             while instance.status not in ["ACTIVE", "ERROR"]:
                 instance = self.nova_client.servers.get(instance.id)
                 time.sleep(2)
-
-
 
             if instance.status == "ERROR":
                 logger.info("vm failed, creating a new one")
@@ -228,6 +234,12 @@ class OpenstackManager(CloudManager):
                 f"""VM not found on openstack, recreating it.
 VM id: {instance.id if instance else 'Vm not created'}"""
             )
+            # Delete any leftover ports with the same name
+            port_list = self.neutron.list_ports(name=runner.name)
+            for port in port_list['ports']:
+                logger.info("deleting port:")
+                logger.info(port['id'])
+                self.neutron.delete_port(port=port['id'])
             return self.create_vm(
                 runner, runner_token, github_organization, installer, call_number + 1
             )
