@@ -16,6 +16,11 @@ sudo -H -u actions bash -c 'echo "{{ ssh_keys }}" >>  /home/actions/.ssh/authori
 
 if [ "${LINUX_OS}" = "ubuntu" ]
 then
+
+# lets do some healthchecking
+
+/opt/gc/scripts/healthcheck.sh
+
 sudo apt-get -y update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y install apt-transport-https \
     ca-certificates \
