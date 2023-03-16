@@ -152,7 +152,7 @@ class OpenstackManager(CloudManager):
             for vm in vm_list:
                 self.nova_client.servers.delete(vm.id)
     
-            sec_group_id = self.neutron.list_security_groups()["security_groups"][0][
+            sec_group_id = self.neutron.list_security_groups(name="default")["security_groups"][0][
                 "id"
             ]
             net = self.neutron.list_networks(name=self.network_name)["networks"][0][

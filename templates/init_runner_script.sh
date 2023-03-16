@@ -16,6 +16,18 @@ sudo -H -u actions bash -c 'echo "{{ ssh_keys }}" >>  /home/actions/.ssh/authori
 
 if [ "${LINUX_OS}" = "ubuntu" ]
 then
+
+# lets do some healthchecking
+
+/opt/gc/scripts/healthcheck.sh
+
+if [ $? -ne 0 ]; then
+	echo "Healthchecks failed, exiting and don't register to Github"
+	exit 1
+else
+	echo "Healthchecks passed, continuing"
+fi
+
 sudo apt-get -y update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y install apt-transport-https \
     ca-certificates \
