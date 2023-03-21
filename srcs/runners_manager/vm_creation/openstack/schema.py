@@ -22,3 +22,4 @@ class OpenstackConfigVmType(Schema):
     partition_name = fields.Str(required=False)
     vipu_ipaddr = fields.Str(required=False)
     vipu_port = fields.Str(required=False)
+    root_volume_size = fields.Int(required=True)
