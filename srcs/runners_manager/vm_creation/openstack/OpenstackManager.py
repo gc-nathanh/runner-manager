@@ -199,10 +199,11 @@ class OpenstackManager(CloudManager):
             instance = self.nova_client.servers.create(
                 name=runner.name,
                 meta=meta_config,
-                image=image,
+                image="",
                 flavor=flavor,
                 security_groups=None,
                 nics=instancenics,
+                block_device_mapping_v2=[ { "source_type": "image", "destination_type": "volume", "uuid": image.id, "delete_on_termination": "true", "boot_index": "0", "volume_size": runner.vm_type.config["root_volume_size"] } ],
                 availability_zone=runner.vm_type.config["availability_zone"],
                 userdata=self.script_init_runner(
                     runner, runner_token, github_organization, installer
