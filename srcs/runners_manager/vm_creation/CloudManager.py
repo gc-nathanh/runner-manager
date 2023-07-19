@@ -38,10 +38,8 @@ class CloudManager(abc.ABC):
         redhat_password: str,
         ssh_keys: str,
     ):
-        if self.CONFIG_SCHEMA is None:
-            raise Exception("CONFIG_SCHEMA should be set")
-
-        self.settings = self.CONFIG_SCHEMA().load(settings)
+        if self.CONFIG_SCHEMA:
+            self.settings = self.CONFIG_SCHEMA().load(settings)
         self.name = name
         self.ssh_keys = ssh_keys
         self.redhat_username = redhat_username
@@ -70,6 +68,10 @@ class CloudManager(abc.ABC):
 
     @abc.abstractmethod
     def delete_images_from_shelved(self, name):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def update_vm_metadata(self, instance_name: str, metadata: dict):
         raise NotImplementedError
 
     def script_init_runner(

@@ -1,7 +1,9 @@
 import logging
+import re
 
 from google.api_core.extended_operation import ExtendedOperation
 from google.cloud.compute import AccessConfig
+from google.cloud.compute import AdvancedMachineFeatures
 from google.cloud.compute import AttachedDisk
 from google.cloud.compute import AttachedDiskInitializeParams
 from google.cloud.compute import Image
@@ -12,6 +14,7 @@ from google.cloud.compute import Items
 from google.cloud.compute import Metadata
 from google.cloud.compute import NetworkInterface
 from google.cloud.compute import Operation
+from google.cloud.compute import Scheduling
 from google.cloud.compute import ServiceAccount
 from google.cloud.compute import ZoneOperationsClient
 from runners_manager.monitoring.prometheus import metrics
@@ -57,6 +60,42 @@ class GcloudManager(CloudManager):
         logger.info(f"No existing instance for runner {runner.name} has been found")
         return None
 
+    def update_vm_metadata(self, instance_name: str, metadata: dict):
+        logger.info(f"Currently adding labels to {instance_name} instance")
+        logger.info(f"Labels : {metadata}")
+        try:
+            instance = self.instances.get(
+                project=self.project_id,
+                zone=self.zone,
+                instance=instance_name
+            )
+
+            labels = instance.labels or {}
+            for key, value in metadata.items():
+                value = value[:63]
+                value = value.lower()
+                value = re.sub(r'[^a-z0-9_-]', '-', value)
+                labels[key] = value
+
+            instance.labels = labels
+
+            ext_operation: ExtendedOperation = self.instances.update(
+                instance=instance_name,
+                project=self.project_id,
+                zone=self.zone,
+                instance_resource=instance,
+            )
+
+            operation: Operation = self.operations.get(
+                project=self.project_id, zone=self.zone, operation=ext_operation.name
+            )
+            logger.info(f"Labels added to {instance_name} instance")
+
+            return operation.target_id
+        except Exception as e:
+            logger.error(e)
+            raise e
+
     def configure_instance(
         self, runner, runner_token, github_organization, installer
     ) -> Instance:
@@ -72,6 +111,21 @@ class GcloudManager(CloudManager):
         )
         disk_size_gb = runner.vm_type.config["disk_size_gb"]
         disk_type = f"projects/{self.project_id}/zones/{self.zone}/diskTypes/pd-ssd"
+
+        labels = {}
+        labels["machine_type"] = runner.vm_type.config["machine_type"]
+        labels["image"] = runner.vm_type.config["project"] + "-" + runner.vm_type.config["family"]
+        labels["status"] = runner.status
+
+        automatic_restart = True
+        provisioning_model = "STANDARD"
+        instance_termination_action = "DEFAULT"
+        preemptible = bool(runner.vm_type.config.get("spot", False))
+        if preemptible:
+            provisioning_model = "SPOT"
+            automatic_restart = False
+            instance_termination_action = "DELETE"
+
         instance: Instance = Instance(
             name=runner.name,
             machine_type=machine_type,
@@ -86,6 +140,7 @@ class GcloudManager(CloudManager):
                     ),
                 )
             ],
+            labels=labels,
             network_interfaces=[
                 NetworkInterface(
                     network="global/networks/default",
@@ -105,6 +160,15 @@ class GcloudManager(CloudManager):
             ],
             metadata=Metadata(
                 items=[Items(key="startup-script", value=startup_script)]
+            ),
+            scheduling=Scheduling(
+                preemptible=preemptible,
+                provisioning_model=provisioning_model,
+                automatic_restart=automatic_restart,
+                instance_termination_action=instance_termination_action,
+            ),
+            advanced_machine_features=AdvancedMachineFeatures(
+                enable_nested_virtualization=True
             ),
         )
         return instance
