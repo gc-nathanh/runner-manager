@@ -94,7 +94,7 @@ class CloudManager(abc.ABC):
             tags=",".join(runner.vm_type.tags),
             redhat_username=self.redhat_username,
             redhat_password=self.redhat_password,
-            group=runner.vm_type.config.runner_group,
+            group=runner.vm_type.config['runner_group'],
             ssh_keys=self.ssh_keys,
         )
         return output
