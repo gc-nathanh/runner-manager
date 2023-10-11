@@ -196,11 +196,11 @@ class OpenstackManager(CloudManager):
                 logger.info("IPUOF config required")
                 meta_config = { "partition_name": runner.vm_type.config["partition_name"], "vipu_ipaddr": runner.vm_type.config["vipu_ipaddr"], "vipu_port": runner.vm_type.config["vipu_port"]  }
 
-            if "ntphost_addr" in runner.vm_type.config:
+            if "ntphost_ipaddr" in runner.vm_type.config:
                 logger.info("Adding NTP server config")
                 meta_config[ "ntphost_ipaddr" ].append(runner.vm_type.config["ntphost_ipaddr"])
 
-            if "loghost_addr" in runner.vm_type.config:
+            if "loghost_ipaddr" in runner.vm_type.config:
                 logger.info("Adding Log server config")
                 meta_config[ "loghost_ipaddr" ].append(runner.vm_type.config["loghost_ipaddr"])
 
