@@ -198,11 +198,11 @@ class OpenstackManager(CloudManager):
 
             if "ntphost_ipaddr" in runner.vm_type.config:
                 logger.info("Adding NTP server config")
-                meta_config[ "ntphost_ipaddr" ].append(runner.vm_type.config["ntphost_ipaddr"])
+                meta_config[ "ntphost_ipaddr" ] = runner.vm_type.config["ntphost_ipaddr"]
 
             if "loghost_ipaddr" in runner.vm_type.config:
                 logger.info("Adding Log server config")
-                meta_config[ "loghost_ipaddr" ].append(runner.vm_type.config["loghost_ipaddr"])
+                meta_config[ "loghost_ipaddr" ] = runner.vm_type.config["loghost_ipaddr"]
 
             instance = self.nova_client.servers.create(
                 name=runner.name,
